@@ -1,0 +1,63 @@
+version: '3.8'
+
+services:
+  qbittorrent-vpn:
+    image: binhex/arch-qbittorrentvpn
+    container_name: qbittorrent-vpn
+    privileged: true
+    ports:
+      - "8080:8080"
+    sysctls:
+      - net.ipv4.conf.all.src_valid_mark=1
+    environment:
+      - PUID=${PUID}
+      - PGID=${PGID}
+      - TZ=${TZ}
+      - VPN_ENABLED=${VPN_ENABLED}
+      - VPN_PROV=${VPN_PROV}
+      - VPN_CLIENT=${VPN_CLIENT}
+      - LAN_NETWORK=${LAN_NETWORK}
+    volumes:
+      - /docker/qbittorrent-vpn:/config
+      - /media/mymedia:/data
+    restart: unless-stopped
+    networks:
+      - media-network
+
+  samba:
+    image: dperson/samba:latest
+    container_name: samba
+    restart: unless-stopped
+    ports:
+      - "137:137/udp"
+      - "138:138/udp"
+      - "139:139/tcp"
+      - "445:445/tcp"
+    environment:
+      - TZ=${TZ}
+    volumes:
+      - /media/mymedia:/mount
+    command: >
+      -u "${SAMBA_USER};${SAMBA_PASS}"
+      -s "SharedMedia;/mount;yes;yes;no;${SAMBA_USER}"
+    networks:
+      - media-network
+
+  filemanager:
+    image: filebrowser/filebrowser
+    container_name: filemanager
+    restart: unless-stopped
+    ports:
+      - "8081:80"
+    volumes:
+      - /media/mymedia:/srv
+      - /docker/filemanager:/config
+    environment:
+      - PUID=${PUID}
+      - PGID=${PGID}
+    networks:
+      - media-network
+
+networks:
+  media-network:
+    driver: bridge
