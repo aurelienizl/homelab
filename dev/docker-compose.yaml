@@ -1,0 +1,57 @@
+services:
+  vpn-gateway:
+    build:
+      context: ./vpn
+      dockerfile: Dockerfile
+    container_name: vpn-gateway
+    privileged: true
+    devices:
+      - /dev/net/tun:/dev/net/tun
+    sysctls:
+      - net.ipv4.conf.all.src_valid_mark=1
+    environment:
+      WG_DEVICE: wg0
+      ETH_IF: eth0
+
+      # --- WireGuard config via .env (fill yours) ---
+      WG_PRIVATE_KEY: ${WG_PRIVATE_KEY}
+      WG_ADDRESS: ${WG_ADDRESS}
+      WG_DNS: ${WG_DNS}
+      WG_PUBLIC_KEY: ${WG_PUBLIC_KEY}
+      WG_ALLOWED_IPS: ${WG_ALLOWED_IPS:-0.0.0.0/0, ::/0}
+      WG_ENDPOINT_IP: ${WG_ENDPOINT_IP}       # IP only (no DNS leak)
+      WG_ENDPOINT_PORT: ${WG_ENDPOINT_PORT:-443}
+      WG_PRESHARED_KEY: ${WG_PRESHARED_KEY}
+
+      # --- LAN access settings (what your LAN may reach on the gateway) ---
+      LAN_CIDR: ${LAN_CIDR:-192.168.1.0/24}
+      ALLOW_LAN_TCP_PORTS: ${ALLOW_LAN_TCP_PORTS:-8080,8081}
+      ALLOW_LAN_UDP_PORTS: ${ALLOW_LAN_UDP_PORTS:-}
+
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "ip link show ${WG_DEVICE:-wg0} | grep -q 'state UP'"]
+      interval: 30s
+      timeout: 6s
+      retries: 5
+      start_period: 20s
+
+    ports:
+      - "8080:8080"
+      - "8081:8081"
+
+  web1:
+    image: python:3.12-alpine
+    command: ["python","-m","http.server","8080"]
+    network_mode: "service:vpn-gateway"
+    depends_on:
+      vpn-gateway:
+        condition: service_healthy
+
+  web2:
+    image: python:3.12-alpine
+    command: ["python","-m","http.server","8081"]
+    network_mode: "service:vpn-gateway"
+    depends_on:
+      vpn-gateway:
+        condition: service_healthy
