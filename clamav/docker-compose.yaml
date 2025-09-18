@@ -1,0 +1,16 @@
+services:
+  clamav:
+    image: clamav/clamav:latest
+    container_name: clamav
+    restart: unless-stopped
+    ports:
+      - "${CLAMAV_PORT:-3310}:3310" # clamd
+    volumes:
+      - clamav_db:/var/lib/clamav
+    networks:
+      - shared_net
+    deploy:
+      resources:
+        limits:
+          cpus: "4.0"
+          memory: 8G

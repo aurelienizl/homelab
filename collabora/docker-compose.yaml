@@ -1,0 +1,21 @@
+services:
+  collabora:
+    image: collabora/code:latest
+    container_name: collabora
+    restart: unless-stopped
+    environment:
+      - domain=${NEXTCLOUD_DOMAIN}
+      - extra_params=--o:ssl.enable=false
+    ports:
+      - "${COLLABORA_PORT:-9980}:9980"
+    volumes:
+      - collabora_data:/var/log/lool
+    networks:
+      - shared_net
+    cap_add:
+      - SYS_ADMIN # Avoid erorr on close 
+    deploy:
+      resources:
+        limits:
+          cpus: "4.0"
+          memory: 4G
