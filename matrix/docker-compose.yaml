@@ -42,9 +42,6 @@ services:
           udp_port: 7882
           tcp_port: 7881
           use_external_ip: true
-          nat1to1_ips:                    # ← advertise both addresses
-          - 82.64.59.78                 # public
-          - 192.168.1.30                # LAN IP of the LiveKit host
         keys:
           devkey: "fe0b14c095b126bdf2df162e8616a866aecfdb4b865bfda2b72f59c376d78e5c"
         room:
