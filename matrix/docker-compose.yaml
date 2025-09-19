@@ -34,42 +34,40 @@ services:
     image: livekit/livekit-server:latest
     restart: unless-stopped
     environment:
-environment:
-    LIVEKIT_CONFIG: |
-      port: 7880
-      log_level: info
-      rtc:
-        udp_port: 7882
-        tcp_port: 7881
-        use_external_ip: true
-      keys:
-        devkey: yoursecretkey
+      LIVEKIT_CONFIG: |
+        port: 7880
+        log_level: info
+        rtc:
+          udp_port: 7882
+          tcp_port: 7881
+          use_external_ip: true
+        keys:
+          devkey: yoursecretkey
     ports:
       - "7880:7880/tcp"   # reverse proxy: mrtc.knlab.mywire.org -> IP:7880 (WS/WSS)
       - "7881:7881/tcp"   # optional direct TCP media fallback
       - "7882:7882/udp"   # the ONLY UDP port you expose
-
   # Element Call JWT service
   lk-jwt:
-    image: ghcr.io/element-hq/lk-jwt-service:latest
-    restart: unless-stopped
-  environment:
-    LIVEKIT_JWT_PORT: "8080"
-    LIVEKIT_URL: "wss://mrtc.knlab.mywire.org"
-    LIVEKIT_KEY: "devkey"
-    LIVEKIT_SECRET: "yoursecretkey"
-    LIVEKIT_FULL_ACCESS_HOMESERVERS: "matrix.knlab.mywire.org"
-    ports:
-      - "8789:8080"   # reverse proxy: mrtc-jwt.knlab.mywire.org -> IP:8789
+      image: ghcr.io/element-hq/lk-jwt-service:latest
+      restart: unless-stopped
+      environment:
+        LIVEKIT_JWT_PORT: "8080"
+        LIVEKIT_URL: "wss://mrtc.knlab.mywire.org"
+        LIVEKIT_KEY: "devkey"
+        LIVEKIT_SECRET: "yoursecretkey"
+        LIVEKIT_FULL_ACCESS_HOMESERVERS: "matrix.knlab.mywire.org"
+      ports:
+        - "8789:8080"   # reverse proxy: mrtc-jwt.knlab.mywire.org -> IP:8789
 
-  # Static web server to host ONLY the .well-known for matrix.knlab.mywire.org
+    # Static web server to host ONLY the .well-known for matrix.knlab.mywire.org
   wellknown:
-    image: nginx:alpine
-    restart: unless-stopped
-    volumes:
-      - ./wellknown:/usr/share/nginx/html:ro   # contains .well-known/matrix/client
-    ports:
-      - "8788:80"   # reverse proxy: matrix.knlab.mywire.org -> IP:8788
+      image: nginx:alpine
+      restart: unless-stopped
+      volumes:
+        - ./wellknown:/usr/share/nginx/html:ro   # contains .well-known/matrix/client
+      ports:
+        - "8788:80"   # reverse proxy: matrix.knlab.mywire.org -> IP:8788
 
 volumes:
   pgdata:
