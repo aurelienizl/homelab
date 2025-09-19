@@ -34,15 +34,16 @@ services:
     image: livekit/livekit-server:latest
     restart: unless-stopped
     environment:
-      LIVEKIT_CONFIG: |
-        port: 7880
-        log_level: info
-        rtc:
-          udp_port: 7882        # single UDP port (UDP mux)
-          tcp_port: 7881        # optional TCP fallback
-          use_external_ip: true
-        keys:
-          devkey: yoursecretkey
+environment:
+    LIVEKIT_CONFIG: |
+      port: 7880
+      log_level: info
+      rtc:
+        udp_port: 7882
+        tcp_port: 7881
+        use_external_ip: true
+      keys:
+        devkey: yoursecretkey
     ports:
       - "7880:7880/tcp"   # reverse proxy: mrtc.knlab.mywire.org -> IP:7880 (WS/WSS)
       - "7881:7881/tcp"   # optional direct TCP media fallback
@@ -52,12 +53,12 @@ services:
   lk-jwt:
     image: ghcr.io/element-hq/lk-jwt-service:latest
     restart: unless-stopped
-    environment:
-      LIVEKIT_JWT_PORT: "8080"
-      LIVEKIT_URL: "wss://mrtc.knlab.mywire.org"           # public WS URL for LiveKit
-      LIVEKIT_KEY: "devkey"
-      LIVEKIT_SECRET: "yoursecretkey"
-      LIVEKIT_FULL_ACCESS_HOMESERVERS: "matrix.knlab.mywire.org"
+  environment:
+    LIVEKIT_JWT_PORT: "8080"
+    LIVEKIT_URL: "wss://mrtc.knlab.mywire.org"
+    LIVEKIT_KEY: "devkey"
+    LIVEKIT_SECRET: "yoursecretkey"
+    LIVEKIT_FULL_ACCESS_HOMESERVERS: "matrix.knlab.mywire.org"
     ports:
       - "8789:8080"   # reverse proxy: mrtc-jwt.knlab.mywire.org -> IP:8789
 
