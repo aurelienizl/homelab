@@ -4,7 +4,7 @@ services:
     container_name: clamav
     restart: unless-stopped
     ports:
-      - "${CLAMAV_PORT:-3310}:3310" # clamd
+      - "${CLAMAV_PORT:-3310}:3310" 
     volumes:
       - clamav_db:/var/lib/clamav
     networks:

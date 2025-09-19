@@ -30,7 +30,7 @@ services:
           cpus: "2.0"
           memory: 2G
 
-
+  # Cron jobs for Nextcloud
   nextcloud-cron:
     image: nextcloud:latest
     container_name: nextcloud-cron

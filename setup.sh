@@ -12,11 +12,11 @@ docker compose exec -u www-data nextcloud php occ background:cron
 # Apps installation
 ##############################
 
-# Richdocuments
+# Richdocuments -> must be configured manually after installation
 docker compose exec -u www-data nextcloud php occ app:install richdocuments
 docker compose exec -u www-data nextcloud php occ app:enable richdocuments
 
-# Files Antivirus
+# Files Antivirus -> must be configured manually after installation
 docker compose exec -u www-data nextcloud php occ app:install files_antivirus
 docker compose exec -u www-data nextcloud php occ app:enable files_antivirus
 
