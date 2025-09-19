@@ -1,0 +1,37 @@
+version: "3.8"
+
+services:
+  db:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: synapse
+      POSTGRES_USER: synapse
+      POSTGRES_PASSWORD: synapsepass          # change me
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+
+  synapse:
+    image: matrixdotorg/synapse:latest
+    restart: unless-stopped
+    depends_on: [db]
+    environment:
+      SYNAPSE_SERVER_NAME: matrix.knlab.mywire.org
+      SYNAPSE_REPORT_STATS: "yes"
+    volumes:
+      - synapse-data:/data                   # homeserver.yaml, keys, media, etc.
+      - ./synapse/conf.d:/data/conf.d:ro     # our drop-in overrides
+    ports:
+      - "8008:8008"                          # your reverse proxy will target this
+
+  element:
+    image: vectorim/element-web:latest
+    restart: unless-stopped
+    volumes:
+      - ./element/config.json:/app/config.json:ro
+    ports:
+      - "8080:80"                            # your reverse proxy will target this
+
+volumes:
+  pgdata:
+  synapse-data:
