@@ -1,5 +1,3 @@
-version: "3.8"
-
 services:
   db:
     image: postgres:16-alpine
@@ -7,7 +5,7 @@ services:
     environment:
       POSTGRES_DB: synapse
       POSTGRES_USER: synapse
-      POSTGRES_PASSWORD: synapsepass          # change me
+      POSTGRES_PASSWORD: synapsepass     # change me
     volumes:
       - pgdata:/var/lib/postgresql/data
 
@@ -16,13 +14,13 @@ services:
     restart: unless-stopped
     depends_on: [db]
     environment:
-      SYNAPSE_SERVER_NAME: matrix.knlab.mywire.org
+      SYNAPSE_SERVER_NAME: matrix.knlab.mywire.org   # user IDs look like @user:matrix.knlab.mywire.org
       SYNAPSE_REPORT_STATS: "yes"
     volumes:
-      - synapse-data:/data                   # homeserver.yaml, keys, media, etc.
-      - ./synapse/conf.d:/data/conf.d:ro     # our drop-in overrides
+      - synapse-data:/data
+      - ./synapse/conf.d:/data/conf.d:ro
     ports:
-      - "8008:8008"                          # your reverse proxy will target this
+      - "8008:8008"   # reverse proxy: hs.knlab.mywire.org -> IP:8008
 
   element:
     image: vectorim/element-web:latest
@@ -30,7 +28,47 @@ services:
     volumes:
       - ./element/config.json:/app/config.json:ro
     ports:
-      - "8080:80"                            # your reverse proxy will target this
+      - "8080:80"     # reverse proxy: chat.knlab.mywire.org -> IP:8080
+
+  livekit:
+    image: livekit/livekit-server:latest
+    restart: unless-stopped
+    environment:
+      LIVEKIT_CONFIG: |
+        port: 7880
+        log_level: info
+        rtc:
+          udp_port: 7882        # single UDP port (UDP mux)
+          tcp_port: 7881        # optional TCP fallback
+          use_external_ip: true
+        keys:
+          devkey: yoursecretkey
+    ports:
+      - "7880:7880/tcp"   # reverse proxy: mrtc.knlab.mywire.org -> IP:7880 (WS/WSS)
+      - "7881:7881/tcp"   # optional direct TCP media fallback
+      - "7882:7882/udp"   # the ONLY UDP port you expose
+
+  # Element Call JWT service
+  lk-jwt:
+    image: ghcr.io/element-hq/lk-jwt-service:latest
+    restart: unless-stopped
+    environment:
+      LIVEKIT_JWT_PORT: "8080"
+      LIVEKIT_URL: "wss://mrtc.knlab.mywire.org"           # public WS URL for LiveKit
+      LIVEKIT_KEY: "devkey"
+      LIVEKIT_SECRET: "yoursecretkey"
+      LIVEKIT_FULL_ACCESS_HOMESERVERS: "matrix.knlab.mywire.org"
+    ports:
+      - "8789:8080"   # reverse proxy: mrtc-jwt.knlab.mywire.org -> IP:8789
+
+  # Static web server to host ONLY the .well-known for matrix.knlab.mywire.org
+  wellknown:
+    image: nginx:alpine
+    restart: unless-stopped
+    volumes:
+      - ./wellknown:/usr/share/nginx/html:ro   # contains .well-known/matrix/client
+    ports:
+      - "8788:80"   # reverse proxy: matrix.knlab.mywire.org -> IP:8788
 
 volumes:
   pgdata:

@@ -1,0 +1,11 @@
+{
+  "m.homeserver": {
+    "base_url": "https://hs.knlab.mywire.org"
+  },
+  "org.matrix.msc4143.rtc_foci": [
+    {
+      "type": "livekit",
+      "livekit_service_url": "https://mrtc-jwt.knlab.mywire.org"
+    }
+  ]
+}

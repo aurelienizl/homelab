@@ -1,5 +1,7 @@
-public_baseurl: "https://matrix.knlab.mywire.org/"
+public_baseurl: "https://hs.knlab.mywire.org/"
+
 enable_registration: false
+
 database:
   name: psycopg2
   args:
@@ -10,7 +12,8 @@ database:
     database: synapse
     cp_min: 5
     cp_max: 10
-# keep this homeserver private
+
+# --- No federation ---
 federation_domain_whitelist: []
 allow_public_rooms_over_federation: false
 allow_profile_lookup_over_federation: false
