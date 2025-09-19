@@ -42,7 +42,10 @@ services:
           tcp_port: 7881
           use_external_ip: true
         keys:
-          devkey: yoursecretkey
+          devkey: yoursecretkey\
+        room:
+          auto_create: false
+
     ports:
       - "7880:7880/tcp"   # reverse proxy: mrtc.knlab.mywire.org -> IP:7880 (WS/WSS)
       - "7881:7881/tcp"   # optional direct TCP media fallback
