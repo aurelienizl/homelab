@@ -1,6 +1,0 @@
-user_directory:
-  enabled: true              # allow searches, but…
-  search_all_users: true    
-  prefer_local_users: true
-
-require_auth_for_user_lookup: true

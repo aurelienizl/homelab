@@ -13,7 +13,7 @@ services:
     networks:
       - shared_net
     cap_add:
-      - SYS_ADMIN # Avoid erorr on close 
+      - SYS_ADMIN # Avoid err on close 
     deploy:
       resources:
         limits:

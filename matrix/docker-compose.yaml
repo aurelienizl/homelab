@@ -1,78 +1,57 @@
 services:
-  db:
-    image: postgres:16-alpine
-    restart: unless-stopped
-    environment:
-      POSTGRES_DB: synapse
-      POSTGRES_USER: synapse
-      POSTGRES_PASSWORD: synapsepass     # change me
-    volumes:
-      - pgdata:/var/lib/postgresql/data
-
-  synapse:
-    image: matrixdotorg/synapse:latest
-    restart: unless-stopped
-    depends_on: [db]
-    environment:
-      SYNAPSE_SERVER_NAME: matrix.knlab.mywire.org   # user IDs look like @user:matrix.knlab.mywire.org
-      SYNAPSE_REPORT_STATS: "yes"
-    volumes:
-      - synapse-data:/data
-      - ./synapse/conf.d:/data/conf.d:ro
-    ports:
-      - "8008:8008"   # reverse proxy: hs.knlab.mywire.org -> IP:8008
-
+  # Element Web (client)
   element:
     image: vectorim/element-web:latest
     restart: unless-stopped
+    ports:
+      - "8080:80"   # backend for your reverse proxy (element.domain.tld)
     volumes:
       - ./element/config.json:/app/config.json:ro
-    ports:
-      - "8080:80"     # reverse proxy: chat.knlab.mywire.org -> IP:8080
+    depends_on:
+      postgres:
+        condition: service_healthy
+      synapse:
+        condition: service_healthy
 
-  livekit:
-    image: livekit/livekit-server:latest
+  # PostgreSQL for Synapse
+  postgres:
+    image: postgres:15
     restart: unless-stopped
     environment:
-      LIVEKIT_CONFIG: |
-        port: 7880
-        log_level: info
-        node_ip: 82.64.59.78
-        rtc:
-          udp_port: 7882
-          tcp_port: 7881
-          use_external_ip: true
-        keys:
-          devkey: "fe0b14c095b126bdf2df162e8616a866aecfdb4b865bfda2b72f59c376d78e5c"
-        room:
-          auto_create: false
+      - POSTGRES_DB=${POSTGRES_DB}
+      - POSTGRES_USER=${POSTGRES_USER}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
+      - POSTGRES_INITDB_ARGS=--encoding=UTF8 --locale=C
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
 
+  # Synapse (Matrix homeserver)
+  synapse:
+    image: matrixdotorg/synapse:latest
+    restart: unless-stopped
     ports:
-      - "7880:7880/tcp"   # reverse proxy: mrtc.knlab.mywire.org -> IP:7880 (WS/WSS)
-      - "7881:7881/tcp"   # optional direct TCP media fallback
-      - "7882:7882/udp"   # the ONLY UDP port you expose
-  # Element Call JWT service
-  lk-jwt:
-      image: ghcr.io/element-hq/lk-jwt-service:latest
-      restart: unless-stopped
-      environment:
-        LIVEKIT_JWT_PORT: "8080"
-        LIVEKIT_URL: "wss://mrtc.knlab.mywire.org"
-        LIVEKIT_KEY: "devkey"
-        LIVEKIT_SECRET: "fe0b14c095b126bdf2df162e8616a866aecfdb4b865bfda2b72f59c376d78e5c"
-        LIVEKIT_FULL_ACCESS_HOMESERVERS: "matrix.knlab.mywire.org"
-      ports:
-        - "8789:8080"   # reverse proxy: mrtc-jwt.knlab.mywire.org -> IP:8789
-
-    # Static web server to host ONLY the .well-known for matrix.knlab.mywire.org
-  wellknown:
-      image: nginx:alpine
-      restart: unless-stopped
-      volumes:
-        - ./wellknown:/usr/share/nginx/html:ro   # contains .well-known/matrix/client
-      ports:
-        - "8788:80"   # reverse proxy: matrix.knlab.mywire.org -> IP:8788
+      - "8008:8008"   # backend for your reverse proxy (matrix.domain.tld)
+    environment:
+      - SYNAPSE_SERVER_NAME=${MATRIX_SERVER_NAME}
+      - SYNAPSE_REPORT_STATS=yes
+    command: ["run", "-c", "/data/homeserver.yaml", "-c", "/data/extra-config.yaml"]
+    volumes:
+      - synapse_data:/data
+      - ./synapse/extra-config.yaml:/data/extra-config.yaml:ro
+    depends_on:
+      postgres:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:8008/_matrix/client/versions || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
 
 volumes:
-  pgdata:
-  synapse-data:
+  synapse_data:
+  postgres_data:

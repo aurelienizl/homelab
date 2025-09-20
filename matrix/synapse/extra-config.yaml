@@ -1,0 +1,32 @@
+# Public base URL
+public_baseurl: https://matrix.knlab.mywire.org/
+
+# Listener behind reverse proxy
+listeners:
+  - port: 8008
+    tls: false
+    type: http
+    x_forwarded: true
+    resources:
+      - names: [client, federation]
+        compress: false
+
+# PostgreSQL
+# (mirror the values from .env)
+database:
+  name: psycopg2
+  args:
+    user: synapse
+    password: "ChangeMeSynapseDB_123!"
+    database: synapse
+    host: postgres
+    port: 5432
+    cp_min: 5
+    cp_max: 20
+
+# Registration (handy for a first test) — disable in prod
+enable_registration: false
+registration_shared_secret: "ChangeMe_RegistrationSecret_123!"
+
+trusted_key_servers:
+  - server_name: "matrix.org"

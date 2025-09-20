@@ -1,13 +1,12 @@
 {
   "default_server_config": {
     "m.homeserver": {
-      "base_url": "https://hs.knlab.mywire.org",
+      "base_url": "https://matrix.knlab.mywire.org",
       "server_name": "matrix.knlab.mywire.org"
     }
   },
-  "element_call": {
-    "url": "https://call.element.io",
-    "use_exclusively": true
-  },
-  "disable_guests": true
+  "disable_custom_urls": true,
+  "disable_guests": true,
+  "brand": "Element",
+  "showLabsSettings": true
 }
