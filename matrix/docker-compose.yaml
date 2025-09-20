@@ -8,10 +8,9 @@ services:
     volumes:
       - ./element/config.json:/app/config.json:ro
     depends_on:
-      postgres:
-        condition: service_healthy
       synapse:
         condition: service_healthy
+
 
   # PostgreSQL for Synapse
   postgres:
@@ -29,6 +28,16 @@ services:
       interval: 10s
       timeout: 5s
       retries: 5
+
+  synapse-gen:
+    image: matrixdotorg/synapse:latest
+    command: ["generate"]
+    environment:
+      - SYNAPSE_SERVER_NAME=${MATRIX_SERVER_NAME}
+      - SYNAPSE_REPORT_STATS=yes
+    volumes:
+      - synapse_data:/data
+    profiles: ["init"]
 
   # Synapse (Matrix homeserver)
   synapse:
