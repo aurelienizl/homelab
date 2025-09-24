@@ -1,0 +1,17 @@
+services:
+  eturnal:
+    image: ghcr.io/processone/eturnal:latest
+    container_name: eturnal
+    restart: unless-stopped
+    network_mode: "host" # bind directly to host ports, if preferred use port mapping
+    volumes:
+      - ./eturnal/eturnal.yml:/etc/eturnal.yml:ro
+    security_opt:
+      - no-new-privileges:true
+    pids_limit: 200
+    deploy:
+      resources:
+        limits:
+          cpus: '0.5'
+          memory: 256m
+    

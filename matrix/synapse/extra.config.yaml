@@ -1,0 +1,227 @@
+################################################################################
+# Synapse extra-config.yaml — private, federated, low-exposure setup
+# Loaded AFTER homeserver.yaml and overrides its keys.
+# Keep secrets aligned with your environment (Docker/ENV/Secrets).
+################################################################################
+
+########################################
+# 0) IDENTITIES & BASE URLS
+########################################
+
+server_name: "matrix.changeme.tld"          # Must match your MXIDs
+public_baseurl: "https://matrix.changeme.tld/"
+report_stats: False
+
+########################################
+# 1) NETWORKING & REVERSE PROXY
+########################################
+# Synapse listens on 8008 behind your reverse proxy (TLS at proxy).
+# Proxy /_matrix (and /_synapse/client) to this listener on :443.
+# For federation, either expose :8448 at proxy or serve:
+#   /.well-known/matrix/server  -> {"m.server":"matrix.changeme.tld:443"}
+
+listeners:
+  - port: 8008
+    tls: false
+    type: http
+    x_forwarded: true
+    resources:
+      - names: [client, federation]   # keep both for federation
+        compress: false
+
+########################################
+# 2) DATABASE (PostgreSQL)
+########################################
+
+database:
+  name: psycopg2
+  args:
+    user: changeme # Set in docker-compose, must match value in .env
+    password: changeme # Set in docker-compose, must match value in .env
+    database: changeme # Set in docker-compose, must match value in .env
+    host: postgres
+    port: 5432
+    cp_min: 5
+    cp_max: 20
+
+
+########################################
+# 3) REGISTRATION & ACCOUNTS
+########################################
+
+enable_registration: true
+registrations_require_3pid:
+  - email
+
+# Optional (closed signups): 
+# registration_requires_token: true
+
+registration_shared_secret: "changeme"
+
+
+########################################
+# 4) EMAIL (SMTP)
+########################################
+
+email:
+  smtp_host: "hangeme.smtp.tld"
+  smtp_port: 587
+  smtp_user: "changeme"
+  smtp_pass: "changeme"   # App password
+  require_transport_security: true
+  enable_notifs: true
+  notif_from: "changeme <changeme>"
+  app_name: "changeme Matrix"
+  client_base_url: "https://element.changeme.tld"
+  invite_client_location: "https://element.changeme.tld"
+
+
+########################################
+# 5) FEDERATION & DIRECTORY EXPOSURE
+########################################
+
+trusted_key_servers: []                   # Fetch keys directly from origin HS
+suppress_key_server_warning: true
+federation_verify_certificates: true
+
+# Keep directory private and browsing authenticated
+allow_public_rooms_over_federation: false
+allow_public_rooms_without_auth: false
+
+# Reduce profile leakage
+limit_profile_requests_to_users_who_share_rooms: true
+include_profile_data_on_invite: true # Avoid client warning messages
+require_auth_for_profile_requests: true
+allow_profile_lookup_over_federation: true # Avoid client warning messages
+
+# Default E2EE for new private rooms; good privacy/UX balance
+encryption_enabled_by_default_for_room_type: invite
+
+# User directory: keep for UX but bias to local users (no federation scraping)
+user_directory:
+  enabled: true
+  prefer_local_users: true
+
+
+########################################
+# 6) AUTHENTICATION SECURITY & RATE LIMITING
+########################################
+
+password_config:
+  # NOTE: Adding a pepper later breaks existing hashes; leave unset unless greenfield.
+  # pepper: "CHANGE_ME_LONG_RANDOM_IF_STARTING_FROM_SCRATCH"
+  policy:
+    enabled: true
+    minimum_length: 12
+    require_digit: true
+    require_symbol: true
+    require_lowercase: true
+    require_uppercase: true
+
+rc_login:
+  address: { per_second: 0.1, burst_count: 5 }
+  account: { per_second: 0.1, burst_count: 5 }
+  failed_attempts: { per_second: 0.1, burst_count: 5 }
+
+rc_registration:
+  per_second: 0.1
+  burst_count: 2
+
+rc_3pid_validation:
+  per_second: 0.003
+  burst_count: 5
+
+rc_invites:
+  per_room: { per_second: 0.3, burst_count: 10 }
+  per_user: { per_second: 0.003, burst_count: 5 }
+
+# Per-remote HS limits to prevent abuse without harming legit use
+rc_federation:
+  window_size: 1000
+  sleep_limit: 10
+  sleep_delay: 500
+  reject_limit: 40
+  concurrent: 3
+
+rc_message:
+  per_second: 0.2
+  burst_count: 10
+
+rc_joins:
+  local:  { per_second: 0.1,  burst_count: 10 }
+  remote: { per_second: 0.01, burst_count: 10 }
+
+# Token/session hygiene (Element supports refresh tokens)
+refreshable_access_token_lifetime: 8h
+refresh_token_lifetime: 30d
+nonrefreshable_access_token_lifetime: 24h
+session_lifetime: 30d
+
+
+########################################
+# 7) STORAGE, RETENTION & PRIVACY
+########################################
+
+# Text/messages: keep forever (no max_lifetime) for full history
+retention:
+  enabled: true
+  default_policy:
+    min_lifetime: 7d              # safety buffer; prevents purging “fresh” events
+    # No max_lifetime => messages are not purged by policy
+
+# Redacted content kept briefly (privacy vs. forensics)
+redaction_retention_period: 7d
+
+# Media strategy: good UX, bounded growth
+# - Keep local uploads a long time (2 years) unless untouched.
+# - Cache remote media generously (6 months) for nice history playback.
+media_retention:
+  local_media_lifetime: 730d      # ~2 years since last access
+  remote_media_lifetime: 180d     # ~6 months since last access
+
+# Authenticated media keeps URLs private to logged-in users
+enable_authenticated_media: true
+
+# Avoid “giant image” pitfalls and cap uploads to keep storage sane
+max_image_pixels: 16M
+max_upload_size: 50M              # tune to taste; common Element-friendly ceiling
+
+# Trim stored IP/User-Agent history to reduce long-term metadata
+user_ips_max_age: 14d
+
+
+########################################
+# 8) URL PREVIEWS (SSRF SURFACE)
+########################################
+
+# Disabled for privacy and to reduce attack surface.
+# If enabling later, mirror ip_range_blacklist in url_preview_ip_range_blacklist.
+url_preview_enabled: false
+
+
+########################################
+# 9) ROOM DIRECTORY & ALIASES (ADMIN CONTROL)
+########################################
+
+# Must match server_name, don't forget to create "admin" user
+room_list_publication_rules:
+  - action: deny
+  - user_id: '@admin:matrix.changeme.tld' 
+    action: allow
+
+alias_creation_rules:
+  - action: deny
+  - user_id: '@admin:matrix.changeme.tld'
+    action: allow
+
+########################################
+# 10) TURN / VoIP
+########################################
+turn_uris:
+  - "turn:turn.changeme.tld:3478?transport=udp"
+  - "turn:turn.changeme.tld:3478?transport=tcp"
+
+turn_shared_secret: "changeme"
+
+turn_user_lifetime: 1h
+turn_allow_guests: false

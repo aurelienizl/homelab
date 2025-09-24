@@ -1,0 +1,21 @@
+{
+  "default_server_config": {
+    "m.homeserver": {
+      "base_url": "https://matrix.changeme.tld",
+      "server_name": "matrix.changeme.tld"
+    }
+  },
+  "brand": "changeme",
+  "default_device_display_name": "changeme (Web)",
+  "disable_custom_urls": true,
+  "disable_guests": true,
+  "showLabsSettings": false,
+  "roomDirectory": { "servers": ["matrix.changeme.tld"] },
+  "permalink_prefix": "https://element.changeme.tld",
+  "defaultCountryCode": "changeme",
+  "settingDefaults": { "autoplayGifs": false },
+  "disable_3pid_login": false,
+  "disable_login_language_selector": true,
+  "integrations_ui_url": null,
+  "integrations_rest_url": null
+}

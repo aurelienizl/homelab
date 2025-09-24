@@ -1,0 +1,119 @@
+# ---- Networks & Volumes ----
+networks:
+  proxy:
+    name: proxy
+    external: true
+
+volumes:
+  synapse_data:
+  postgres_data:
+
+# ---- Services ----
+
+services:
+  # ---- Element Web (client) ----
+  element:
+    image: vectorim/element-web:latest
+    restart: unless-stopped
+    expose:
+      - "80"                             
+    volumes:
+      - ./element/config.json:/app/config.json:ro
+    depends_on:
+      synapse:
+        condition: service_healthy
+    networks: ["proxy"]
+    security_opt:
+      - no-new-privileges:true
+    pids_limit: 200
+    deploy:
+      resources:
+        limits:
+          cpus: '0.5'
+          memory: 256m
+    logging:
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+  # ---- PostgreSQL for Synapse ----
+  postgres:
+    image: postgres:15
+    restart: unless-stopped
+    environment:
+      - POSTGRES_DB=${POSTGRES_DB}
+      - POSTGRES_USER=${POSTGRES_USER}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
+      - POSTGRES_INITDB_ARGS=--encoding=UTF8 --locale=C
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+    security_opt:
+      - no-new-privileges:true
+    pids_limit: 300
+    deploy:
+      resources:
+        limits:
+          cpus: '1.0'
+          memory: 1g
+    logging:
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+  # ---- One-off generator for initial Synapse config (run via profile) ----
+  synapse-gen:
+    image: matrixdotorg/synapse:latest
+    command: ["generate"]
+    environment:
+      - SYNAPSE_SERVER_NAME=${MATRIX_SERVER_NAME}
+      - SYNAPSE_REPORT_STATS=yes
+    volumes:
+      - synapse_data:/data
+    profiles: ["init"]
+    security_opt:
+      - no-new-privileges:true
+    logging:
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+  # ---- Synapse (Matrix homeserver) ----
+  synapse:
+    image: matrixdotorg/synapse:latest
+    restart: unless-stopped
+    expose:
+      - "8008"
+    environment:
+      - SYNAPSE_SERVER_NAME=${MATRIX_SERVER_NAME}
+      - SYNAPSE_REPORT_STATS=yes
+    command: ["run", "-c", "/data/homeserver.yaml", "-c", "/data/extra-config.yaml"]
+    volumes:
+      - synapse_data:/data
+      - ./synapse/extra-config.yaml:/data/extra-config.yaml:ro
+    depends_on:
+      postgres:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:8008/_matrix/client/versions || exit 1"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+    # Default network talks to Postgres; 'proxy' network is for NPM only.
+    networks: ["default", "proxy"]
+    security_opt:
+      - no-new-privileges:true
+    pids_limit: 400
+    deploy:
+      resources:
+        limits:
+          cpus: '2.0'
+          memory: 2g
+    logging:
+      options:
+        max-size: "10m"
+        max-file: "3"

@@ -1,0 +1,33 @@
+eturnal:
+  log_dir: stdout
+  # log_level: warning
+
+  # TURN REST (ephemeral) auth; this must match Synapse's turn_shared_secret
+  secret: "changeme"
+
+  # Must point to server public DNS name, not localhost or private IP
+  realm: "turn.changeme.tld"
+
+  # Relay ports kept small for Docker/host convenience (adjust if you expect many calls)
+  relay_min_port: 50000
+  relay_max_port: 50099
+  # If your host is behind NAT, set the public IP explicitly:
+  # relay_ipv4_addr: "YOUR.PUBLIC.IP.V4"
+
+  # More stable on IPv4-only hosts; set to "none" to disable IPv6
+  relay_ipv6_addr: "none"
+  # STUN/TURN listeners (no TLS, already encrypted in Matrix)
+  # TLS over Let's Encrypt is possible but not recommended here
+  listen:
+    - ip: "::" # "0.0.0.0" does not work 
+      port: 3478
+      transport: udp
+      enable_turn: true
+    - ip: "::"
+      port: 3478
+      transport: tcp
+      enable_turn: true
+
+  # Sensible baseline egress protection
+  blacklist_peers:
+    - recommended
