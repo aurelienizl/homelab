@@ -231,3 +231,17 @@ matrixAuthenticationService:
                 suffixes: ["@yourdomain.tld"]
 YAML
 ```
+
+Apply everything :
+
+```bash
+helm upgrade --install ess oci://ghcr.io/element-hq/ess-helm/matrix-stack \
+  -n ess \
+  -f ~/ess-config-values/hostnames.yaml \
+  -f ~/ess-config-values/tls.yaml \
+  -f ~/ess-config-values/mas-disable-registration.yaml \
+  --wait
+  ```
+
+
+
