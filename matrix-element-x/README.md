@@ -1,5 +1,4 @@
 # Deploying Element Server Suite (ESS) on Debian
-
 *K3s + Traefik + cert-manager (Let’s Encrypt), no external reverse proxy*
 
 This guide walks you through a clean, repeatable deployment of **ESS Community** on a fresh Debian server using **K3s** (single-node Kubernetes), **Traefik** (ingress), and **cert-manager** (automatic TLS).
@@ -178,7 +177,7 @@ bash install_ess.sh
 
 ---
 
-## 3) Deploy-time verification (minimal)
+## 3) Deploy-time verification
 
 1. **Certificates are ready**
 
@@ -202,3 +201,33 @@ bash install_ess.sh
    * Homeserver base URL: `https://matrix.yourdomain.tld`
 
 That’s it — your ESS deployment is live with automatic TLS and ready for users.
+
+4. **Add user authentication using SMTP (optional)**
+```bash
+cat > ~/ess-config-values/mas-registration.yaml <<'YAML'
+matrixAuthenticationService:
+  additional:
+    user-config.yaml:
+      # Inline plaintext config injected into MAS
+      config: |
+        email:
+          from: '"Your Lab" <your.email@yourdomain.tld>'
+          reply_to: '"Your Lab" <your.email@yourdomain.tld>'
+          transport: smtp
+          mode: starttls
+          hostname: "smtp.yourdomain.tld"
+          port: 587
+          username: "your.email@yourdomain.tld"
+          password: "your_app_password"   # <- your app password, no spaces
+        account:
+          password_registration_enabled: true
+          password_recovery_enabled: true
+          login_with_email_allowed: true
+        policy:
+          data:
+            emails:
+              # Allow only addresses from your domain
+              allowed_addresses:
+                suffixes: ["@yourdomain.tld"]
+YAML
+```
